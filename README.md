@@ -36,4 +36,6 @@ If the optional params are not passed, they are inferred from the environmental 
 Tests
 =====
 
+Testing done using `py.test`. Install using `pip install pytest`.
+
 Test cases are present which are taken from the Amazon Docs [here](http://docs.aws.amazon.com/AWSECommerceService/latest/DG/rest-signature.html#rest_detailedexample).
