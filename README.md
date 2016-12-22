@@ -4,7 +4,13 @@ Amazon Product Ad APIs URI Generator
 Amazon Product Ad APIs uses HMAC Authentication for user authentication.
 
 HMAC is `Keyed-Hash Message Authentication Code` and requires a secret key beforehand.
-More can be read in the official [RFC2104](https://tools.ietf.org/html/rfc2104).
+
+More can be read in the [RFC2104](https://tools.ietf.org/html/rfc2104).
+
+The actual paper can be found [here](http://cseweb.ucsd.edu/~mihir/papers/kmd5.pdf).
+
+Prerequisites
+==============
 
 Assuming, you have the
 
