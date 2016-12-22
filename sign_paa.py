@@ -104,13 +104,22 @@ def get_url_dict(secret_key, query_dict):
         sign = get_signature_can(secret_key, can_qp)
         return "http://{}{}?{}&Signature={}".format(HOST, URI, can_qp, sign)
 
-def get_url_dict_cred(query_dict, access_key, secret_key, associate_tag, fmt_date):
+def get_url_dict_cred(query_dict, access_key=None, secret_key=None, associate_tag=None, fmt_date=None):
         "Given a dict of query paramters, get the complete URL"
         if not query_dict:
             raise ValueError("query_dict cannot be None or empty")
 
+        if not access_key:
+            access_key = os.environ.get('AWS_ACCESS_KEY_ID')
+
+        if not secret_key:
+            secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+
+        if not associate_tag:
+            associate_tag = os.environ.get('AWS_ASSOCIATE_TAG')
+
         if not access_key or not secret_key or not associate_tag:
-            raise ValueError("Blank credentials not allowed")
+            raise ValueError("Blank credentials not allowed. Either pass them or export them.")
 
         if not fmt_date:
             t = datetime.datetime.utcnow()
@@ -163,6 +172,9 @@ def get_complete_url(category, keywords):
         return get_url_defaults(category, keywords, access_key, secret_key, associate_tag, fmt_date)
 
 if __name__ == '__main__':
+        category = raw_input("Enter the SearchIndex [Books]: ")
+        if not category:
+            category = 'Books'
         keywords = raw_input("Enter the search keywords : ")
         print get_complete_url("Books", keywords)
 
