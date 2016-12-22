@@ -32,3 +32,8 @@ Most notable of these are `get_url_dict_cred(query_dict, access_key=None, secret
 Just pass a dictionary of the query parameters that need signing, along with credentials. The method would canonicalize the query params, sign them using the secret_key and return the complete url.
 
 If the optional params are not passed, they are inferred from the environmental variables. If still not present, a `ValueError` is thrown.
+
+Tests
+=====
+
+Test cases are present which are taken from the Amazon Docs [here](http://docs.aws.amazon.com/AWSECommerceService/latest/DG/rest-signature.html#rest_detailedexample).
