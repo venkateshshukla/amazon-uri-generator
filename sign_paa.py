@@ -10,38 +10,42 @@ URI = '/onca/xml'
 SERVICE = 'AWSECommerceService'
 OPERATION = 'ItemSearch'
 
+
 def sign_hex(key, string_to_sign):
-    "Get the HEX encoded HMAC signature."
+    """Get the HEX encoded HMAC signature."""
     if not key or not string_to_sign:
         raise ValueError("key or string_to_sign cannot be blank")
     return hmac.new(key, string_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
 
+
 def sign_base64(key, string_to_sign):
-    "Return base64 encoded HMAC signature"
+    """Return base64 encoded HMAC signature"""
     val_hex = sign_hex(key, string_to_sign)
     return val_hex.decode("hex").encode("base64").strip()
 
+
 def sign_base64_enc(key, string_to_sign):
-    "Return Base64 URL Encoded HMAC Signature"
+    """Return Base64 URL Encoded HMAC Signature"""
     val_base64 = sign_base64(key, string_to_sign)
     return urllib.quote(val_base64)
 
+
 def sort_qp_numeric(qp):
-    "Return a comma separated string of numerically sorted data from a CSV String"
+    """Return a comma separated string of numerically sorted data from a CSV String"""
     if not qp:
         raise ValueError("qp cannot be blank")
     tok = qp.split(',')
     tok.sort(key=str.encode)
     return ','.join(tok)
 
+
 def canonicalize(query_param):
-    "Return a canonical string of query parameters."
+    """Return a canonical string of query parameters."""
     if not query_param:
         raise ValueError("query_param cannot be blank")
     qps = query_param.split('&')
     qp_map = {}
     qp_keys = []
-    qp_val = []
     for qp in qps:
         tok = qp.split('=')
         k = tok[0].strip()
@@ -61,8 +65,9 @@ def canonicalize(query_param):
             cans = cans + '&' + q
     return cans
 
+
 def canonicalize_dict(query_dict):
-    "Given a dictionary, get the corresponding canonical query params"
+    """Given a dictionary, get the corresponding canonical query params"""
     if not query_dict:
         raise ValueError("Cannot canonicalize empty dictionary")
     can_qp = ''
@@ -76,8 +81,9 @@ def canonicalize_dict(query_dict):
         can_qp += "{}={}".format(k, vse)
     return can_qp
 
+
 def get_signature(secret_key, query_param):
-    "For the given query parameter, get the HMAC signature"
+    """For the given query parameter, get the HMAC signature"""
     if not secret_key or not query_param:
         raise ValueError("secret_key or query_param cannot be blank")
     canonical_qp = canonicalize(query_param)
@@ -85,7 +91,7 @@ def get_signature(secret_key, query_param):
 
 
 def get_signature_can(secret_key, canonical_qp):
-    "For the given canonical_qp, get the HMAC signature using the given key"
+    """For the given canonical_qp, get the HMAC signature using the given key"""
     if not secret_key or not canonical_qp:
         raise ValueError("secret_key or query_param cannot be blank")
     string_to_sign = '{}\n{}\n{}\n{}'.format(METHOD, HOST, URI, canonical_qp).strip()
@@ -94,7 +100,7 @@ def get_signature_can(secret_key, canonical_qp):
 
 
 def get_url_dict(secret_key, query_dict):
-    "Get the complete url from the given dict and secret_key"
+    """Get the complete url from the given dict and secret_key"""
     if not query_dict:
         raise ValueError("Cannot get blank URL")
     if not secret_key:
@@ -103,8 +109,9 @@ def get_url_dict(secret_key, query_dict):
     sign = get_signature_can(secret_key, can_qp)
     return "http://{}{}?{}&Signature={}".format(HOST, URI, can_qp, sign)
 
+
 def get_url_dict_cred(query_dict, access_key=None, secret_key=None, associate_tag=None, fmt_date=None):
-    "Given a dict of query paramters, get the complete URL"
+    """Given a dict of query paramters, get the complete URL"""
     if not query_dict:
         raise ValueError("query_dict cannot be None or empty")
 
@@ -136,10 +143,10 @@ def get_url_dict_cred(query_dict, access_key=None, secret_key=None, associate_ta
     return get_url_dict(sk, qd)
 
 
-def get_url_defaults(category, keywords, access_key, secret_key, associate_tag, fmt_date):
-    "Given the category, keywords and credentials, get the amazon URL"
+def get_url_defaults(catgy, kywrds, access_key, secret_key, associate_tag, fmt_date):
+    """Given the category, keywords and credentials, get the amazon URL"""
     # If keywords or category is None, return.
-    if not keywords or not category:
+    if not kywrds or not catgy:
         raise ValueError("category/keywords cannot be blank")
 
     # If access_key is None or secret_key is None or associate_tag is None:
@@ -149,15 +156,15 @@ def get_url_defaults(category, keywords, access_key, secret_key, associate_tag, 
     qp = {}
     qp['Service'] = SERVICE
     qp['Operation'] = OPERATION
-    qp['SearchIndex'] = category
-    qp['Keywords'] = keywords
+    qp['SearchIndex'] = catgy
+    qp['Keywords'] = kywrds
 
     return get_url_dict_cred(qp, access_key, secret_key, associate_tag, fmt_date)
 
 
-def get_complete_url(category, keywords):
-    "Get the complete url for given category and keywords. Fetch credentials from environ"
-    if not keywords or not category:
+def get_complete_url(catgy, kywrds):
+    """Get the complete url for given category and keywords. Fetch credentials from environ"""
+    if not kywrds or not catgy:
         raise ValueError("category/keywords cannot be blank")
 
     # Get the access credentials from the environment
@@ -169,7 +176,8 @@ def get_complete_url(category, keywords):
     t = datetime.datetime.utcnow()
     fmt_date = t.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    return get_url_defaults(category, keywords, access_key, secret_key, associate_tag, fmt_date)
+    return get_url_defaults(catgy, kywrds, access_key, secret_key, associate_tag, fmt_date)
+
 
 if __name__ == '__main__':
     category = raw_input("Enter the SearchIndex [Books]: ")
