@@ -42,7 +42,7 @@ def test_get_signature():
         sign_paa.HOST = "webservices.amazon.com"
         sk = "1234567890"
         qp = "Service=AWSECommerceService&AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&AssociateTag=mytag-20&Operation=ItemLookup&ItemId=0679722769&ResponseGroup=Images,ItemAttributes,Offers,Reviews&Version=2013-08-01&Timestamp=2014-08-18T12:00:00Z"
-        actual = sign_paa.get_signature(sk, qp)
+        actual = sign_paa.get_signature(qp, sk)
         expected = "j7bZM0LXZ9eXeZruTqWm2DIvDYVUU3wxPPpp%2BiXxzQc%3D"
         assert actual == expected
 

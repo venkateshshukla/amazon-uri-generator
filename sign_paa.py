@@ -8,8 +8,12 @@ METHOD = 'GET'
 HOST = 'webservices.amazon.in'
 URI = '/onca/xml'
 SERVICE = 'AWSECommerceService'
-OPERATION = 'ItemSearch'
+DEF_OPERN = 'ItemSearch'
+DEF_CATGY = "Books"
 
+VAR_ACCESS_KEY = 'AWS_ACCESS_KEY_ID'
+VAR_SECRET_KEY = 'AWS_SECRET_ACCESS_KEY'
+VAR_ASSO_TAG = 'AWS_ASSOCIATE_TAG'
 
 def sign_hex(key, string_to_sign):
     """Get the HEX encoded HMAC signature."""
@@ -82,31 +86,42 @@ def canonicalize_dict(query_dict):
     return can_qp
 
 
-def get_signature(secret_key, query_param):
+def get_signature(query_param, secret_key=None):
     """For the given query parameter, get the HMAC signature"""
-    if not secret_key or not query_param:
-        raise ValueError("secret_key or query_param cannot be blank")
+    if not secret_key:
+        secret_key = os.environ.get(VAR_SECRET_KEY)
+    if not query_param:
+        raise ValueError("query_param cannot be blank")
+    if not secret_key:
+        raise ValueError("secret_key cannot be blank. Either pass or export it as AWS_SECRET_ACCESS_KEY.")
+
     canonical_qp = canonicalize(query_param)
-    return get_signature_can(secret_key, canonical_qp)
+    return get_signature_can(canonical_qp, secret_key)
 
 
-def get_signature_can(secret_key, canonical_qp):
+def get_signature_can(canonical_qp, secret_key=None):
     """For the given canonical_qp, get the HMAC signature using the given key"""
-    if not secret_key or not canonical_qp:
-        raise ValueError("secret_key or query_param cannot be blank")
+    if not secret_key:
+        secret_key = os.environ.get(VAR_SECRET_KEY)
+    if not canonical_qp:
+        raise ValueError("Cannot get blank canonical query params")
+    if not secret_key:
+        raise ValueError("secret_key cannot be blank. Either pass or export it as AWS_SECRET_ACCESS_KEY.")
     string_to_sign = '{}\n{}\n{}\n{}'.format(METHOD, HOST, URI, canonical_qp).strip()
     signature = sign_base64_enc(secret_key, string_to_sign)
     return signature
 
 
-def get_url_dict(secret_key, query_dict):
+def get_url_dict(query_dict, secret_key=None):
     """Get the complete url from the given dict and secret_key"""
-    if not query_dict:
-        raise ValueError("Cannot get blank URL")
     if not secret_key:
-        raise ValueError("secret_key cannot be blank")
+        secret_key = os.environ.get(VAR_SECRET_KEY)
+    if not query_dict:
+        raise ValueError("Cannot have blank query dictionary")
+    if not secret_key:
+        raise ValueError("secret_key cannot be blank. Either pass or export it as AWS_SECRET_ACCESS_KEY.")
     can_qp = canonicalize_dict(query_dict)
-    sign = get_signature_can(secret_key, can_qp)
+    sign = get_signature_can(can_qp, secret_key)
     return "http://{}{}?{}&Signature={}".format(HOST, URI, can_qp, sign)
 
 
@@ -116,13 +131,13 @@ def get_url_dict_cred(query_dict, access_key=None, secret_key=None, associate_ta
         raise ValueError("query_dict cannot be None or empty")
 
     if not access_key:
-        access_key = os.environ.get('AWS_ACCESS_KEY_ID')
+        access_key = os.environ.get(VAR_ACCESS_KEY)
 
     if not secret_key:
-        secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+        secret_key = os.environ.get(VAR_SECRET_KEY)
 
     if not associate_tag:
-        associate_tag = os.environ.get('AWS_ASSOCIATE_TAG')
+        associate_tag = os.environ.get(VAR_ASSO_TAG)
 
     if not access_key or not secret_key or not associate_tag:
         raise ValueError("Blank credentials not allowed. Either pass them or export them.")
@@ -140,10 +155,10 @@ def get_url_dict_cred(query_dict, access_key=None, secret_key=None, associate_ta
     qd['AssociateTag'] = at
     qd['Timestamp'] = fmt_date
 
-    return get_url_dict(sk, qd)
+    return get_url_dict(qd, sk)
 
 
-def get_url_defaults(catgy, kywrds, access_key, secret_key, associate_tag, fmt_date):
+def get_url_defaults(kywrds, op=DEF_OPERN, catgy=DEF_CATGY, access_key=None, secret_key=None, associate_tag=None, fmt_date=None):
     """Given the category, keywords and credentials, get the amazon URL"""
     # If keywords or category is None, return.
     if not kywrds or not catgy:
@@ -155,33 +170,38 @@ def get_url_defaults(catgy, kywrds, access_key, secret_key, associate_tag, fmt_d
 
     qp = {}
     qp['Service'] = SERVICE
-    qp['Operation'] = OPERATION
+    qp['Operation'] = op
     qp['SearchIndex'] = catgy
     qp['Keywords'] = kywrds
 
     return get_url_dict_cred(qp, access_key, secret_key, associate_tag, fmt_date)
 
 
-def get_complete_url(catgy, kywrds):
+def get_complete_url(kywrds, op=DEF_OPERN, catgy=DEF_CATGY):
     """Get the complete url for given category and keywords. Fetch credentials from environ"""
-    if not kywrds or not catgy:
-        raise ValueError("category/keywords cannot be blank")
+    if not kywrds or not catgy or not op:
+        raise ValueError("kywrds/catgy/op cannot be blank")
 
     # Get the access credentials from the environment
-    access_key = os.environ.get('AWS_ACCESS_KEY_ID')
-    secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    associate_tag = os.environ.get('AWS_ASSOCIATE_TAG')
+    access_key = os.environ.get(VAR_ACCESS_KEY)
+    secret_key = os.environ.get(VAR_SECRET_KEY)
+    associate_tag = os.environ.get(VAR_ASSO_TAG)
 
     # Create a date for headers and the credential string
     t = datetime.datetime.utcnow()
     fmt_date = t.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    return get_url_defaults(catgy, kywrds, access_key, secret_key, associate_tag, fmt_date)
+    return get_url_defaults(kywrds, op, catgy, access_key, secret_key, associate_tag, fmt_date)
 
 
 if __name__ == '__main__':
-    category = raw_input("Enter the SearchIndex [Books]: ")
-    if not category:
-        category = 'Books'
-    keywords = raw_input("Enter the search keywords : ")
-    print get_complete_url("Books", keywords)
+    op = raw_input("Enter the Operation [ItemSearch]: ")
+    if not op:
+        op = DEF_OPERN
+    catgy = raw_input("Enter the SearchIndex [Books]: ")
+    if not catgy:
+        catgy = DEF_CATGY
+    keywords = raw_input("Enter the search keywords (ItemSearch) / itemId (ItemLookup): ")
+    if not keywords:
+        print "Cannot have blank keywords"
+    print get_complete_url(keywords, op, catgy)
